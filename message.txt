@@ -1,0 +1,1555 @@
+--// UNIVERSAL SCRIPT
+--// FIXED MODERN GUI
+--// LocalScript -> StarterPlayer -> StarterPlayerScripts
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--==================================================
+-- CONFIG
+--==================================================
+
+local Config = {
+    AirJump = false,
+    Fly = false,
+    FlySpeed = 50,
+    FreezeNPC = false,
+    FullBright = false,
+    Theme = "Blue",
+
+    Themes = {
+        Blue   = Color3.fromRGB(40, 130, 255),
+        Pink   = Color3.fromRGB(255, 75, 170),
+        Green  = Color3.fromRGB(50, 210, 120),
+        Black  = Color3.fromRGB(45, 45, 50),
+        Red    = Color3.fromRGB(235, 65, 70),
+        Purple = Color3.fromRGB(145, 80, 255),
+        Orange = Color3.fromRGB(255, 135, 45)
+    }
+}
+
+--==================================================
+-- CHARACTER
+--==================================================
+
+local Character
+local Humanoid
+local Root
+
+local function loadCharacter(char)
+    Character = char
+    Humanoid = char:WaitForChild("Humanoid")
+    Root = char:WaitForChild("HumanoidRootPart")
+end
+
+if Player.Character then
+    loadCharacter(Player.Character)
+end
+
+Player.CharacterAdded:Connect(loadCharacter)
+
+--==================================================
+-- SCREEN GUI
+--==================================================
+
+local oldGui = PlayerGui:FindFirstChild("Universal script")
+
+if oldGui then
+    oldGui:Destroy()
+end
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "Universal script"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.DisplayOrder = 999
+Gui.Parent = PlayerGui
+
+--==================================================
+-- MAIN PANEL
+--==================================================
+
+local Main = Instance.new("Frame")
+Main.Name = "Main"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.fromOffset(560, 420)
+Main.BackgroundColor3 = Color3.fromRGB(17, 18, 23)
+Main.BorderSizePixel = 0
+Main.ZIndex = 10
+Main.Parent = Gui
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = Main
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.25
+MainStroke.Color = Config.Themes[Config.Theme]
+MainStroke.Parent = Main
+
+--==================================================
+-- TOP BAR
+--==================================================
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Size = UDim2.new(1, 0, 0, 62)
+TopBar.BackgroundTransparency = 1
+TopBar.ZIndex = 20
+TopBar.Parent = Main
+
+local Title = Instance.new("TextLabel")
+Title.Name = "Title"
+Title.Position = UDim2.fromOffset(18, 7)
+Title.Size = UDim2.new(1, -36, 0, 27)
+Title.BackgroundTransparency = 1
+Title.Text = "PLESNEVIY XYU CONFIG"
+Title.TextColor3 = Color3.fromRGB(245, 245, 250)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.ZIndex = 21
+Title.Parent = TopBar
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Name = "Subtitle"
+Subtitle.Position = UDim2.fromOffset(19, 34)
+Subtitle.Size = UDim2.new(1, -38, 0, 18)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Text = "PLAYER CONTROL PANEL"
+Subtitle.TextColor3 = Color3.fromRGB(130, 132, 145)
+Subtitle.TextSize = 10
+Subtitle.Font = Enum.Font.GothamMedium
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.ZIndex = 21
+Subtitle.Parent = TopBar
+
+--==================================================
+-- DRAGGING
+--==================================================
+
+local dragging = false
+local dragStart
+local startPosition
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
+        dragging = true
+        dragStart = input.Position
+        startPosition = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+
+        local delta = input.Position - dragStart
+
+        Main.Position = UDim2.new(
+            startPosition.X.Scale,
+            startPosition.X.Offset + delta.X,
+            startPosition.Y.Scale,
+            startPosition.Y.Offset + delta.Y
+        )
+    end
+end)
+
+--==================================================
+-- TAB BAR
+--==================================================
+
+local TabBar = Instance.new("Frame")
+TabBar.Name = "TabBar"
+TabBar.Position = UDim2.fromOffset(14, 68)
+TabBar.Size = UDim2.new(1, -28, 0, 42)
+TabBar.BackgroundTransparency = 1
+TabBar.ZIndex = 30
+TabBar.Parent = Main
+
+local TabLayout = Instance.new("UIListLayout")
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+TabLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+TabLayout.Padding = UDim.new(0, 8)
+TabLayout.Parent = TabBar
+
+--==================================================
+-- CONTENT AREA
+--==================================================
+
+local Content = Instance.new("Frame")
+Content.Name = "Content"
+Content.Position = UDim2.fromOffset(14, 118)
+Content.Size = UDim2.new(1, -28, 1, -132)
+Content.BackgroundTransparency = 1
+Content.ZIndex = 15
+Content.Parent = Main
+
+--==================================================
+-- PAGES
+--==================================================
+
+local Pages = {}
+local Tabs = {}
+
+local function CreatePage(name)
+
+    local Page = Instance.new("ScrollingFrame")
+
+    Page.Name = name
+    Page.Size = UDim2.fromScale(1, 1)
+    Page.BackgroundTransparency = 1
+    Page.BorderSizePixel = 0
+
+    Page.ScrollBarThickness = 4
+    Page.ScrollBarImageTransparency = 0.15
+
+    Page.CanvasSize = UDim2.fromOffset(0, 0)
+
+    Page.Visible = false
+    Page.ZIndex = 16
+
+    Page.Parent = Content
+
+    local Padding = Instance.new("UIPadding")
+    Padding.PaddingTop = UDim.new(0, 3)
+    Padding.PaddingBottom = UDim.new(0, 10)
+    Padding.Parent = Page
+
+    local Layout = Instance.new("UIListLayout")
+    Layout.Padding = UDim.new(0, 8)
+    Layout.SortOrder = Enum.SortOrder.LayoutOrder
+    Layout.Parent = Page
+
+    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+
+        Page.CanvasSize = UDim2.fromOffset(
+            0,
+            Layout.AbsoluteContentSize.Y + 20
+        )
+
+    end)
+
+    Pages[name] = Page
+
+    return Page
+end
+
+local PlayerPage = CreatePage("Player")
+local GamePage = CreatePage("Game")
+local SettingsPage = CreatePage("Settings")
+
+--==================================================
+-- TAB CREATOR
+--==================================================
+
+local function SelectTab(name)
+
+    for PageName, Page in pairs(Pages) do
+        Page.Visible = PageName == name
+    end
+
+    for TabName, Button in pairs(Tabs) do
+
+        if TabName == name then
+
+            Button.BackgroundColor3 =
+                Config.Themes[Config.Theme]
+
+            Button.TextColor3 =
+                Color3.fromRGB(255, 255, 255)
+
+        else
+
+            Button.BackgroundColor3 =
+                Color3.fromRGB(30, 31, 38)
+
+            Button.TextColor3 =
+                Color3.fromRGB(155, 157, 170)
+        end
+    end
+end
+
+local function CreateTab(name)
+
+    local Button = Instance.new("TextButton")
+
+    Button.Name = name .. "Tab"
+    Button.Size = UDim2.fromOffset(125, 38)
+
+    Button.BackgroundColor3 =
+        Color3.fromRGB(30, 31, 38)
+
+    Button.BorderSizePixel = 0
+
+    Button.Text = name
+
+    Button.TextColor3 =
+        Color3.fromRGB(155, 157, 170)
+
+    Button.TextSize = 13
+    Button.Font = Enum.Font.GothamSemibold
+
+    Button.AutoButtonColor = false
+
+    Button.ZIndex = 31
+    Button.Parent = TabBar
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 9)
+    Corner.Parent = Button
+
+    Tabs[name] = Button
+
+    Button.MouseButton1Click:Connect(function()
+        SelectTab(name)
+    end)
+
+    return Button
+end
+
+CreateTab("Player")
+CreateTab("Game")
+CreateTab("Settings")
+
+--==================================================
+-- TOGGLE CREATOR
+--==================================================
+
+local function CreateToggle(parent, text, callback)
+
+    local Holder = Instance.new("Frame")
+
+    Holder.Name = text .. "Toggle"
+    Holder.Size = UDim2.new(1, -8, 0, 50)
+
+    Holder.BackgroundColor3 =
+        Color3.fromRGB(25, 26, 33)
+
+    Holder.BorderSizePixel = 0
+    Holder.ZIndex = 20
+    Holder.Parent = parent
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Holder
+
+    local Label = Instance.new("TextLabel")
+
+    Label.Position = UDim2.fromOffset(16, 0)
+    Label.Size = UDim2.new(1, -90, 1, 0)
+
+    Label.BackgroundTransparency = 1
+
+    Label.Text = text
+
+    Label.TextColor3 =
+        Color3.fromRGB(235, 235, 240)
+
+    Label.TextSize = 13
+    Label.Font = Enum.Font.GothamMedium
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    Label.ZIndex = 22
+    Label.Parent = Holder
+
+    local Button = Instance.new("TextButton")
+
+    Button.Position =
+        UDim2.new(1, -63, 0.5, -12)
+
+    Button.Size =
+        UDim2.fromOffset(48, 24)
+
+    Button.BackgroundColor3 =
+        Color3.fromRGB(55, 56, 66)
+
+    Button.Text = ""
+
+    Button.AutoButtonColor = false
+
+    Button.ZIndex = 23
+    Button.Parent = Holder
+
+    local ButtonCorner = Instance.new("UICorner")
+    ButtonCorner.CornerRadius = UDim.new(1, 0)
+    ButtonCorner.Parent = Button
+
+    local Knob = Instance.new("Frame")
+
+    Knob.Position =
+        UDim2.fromOffset(3, 3)
+
+    Knob.Size =
+        UDim2.fromOffset(18, 18)
+
+    Knob.BackgroundColor3 =
+        Color3.fromRGB(230, 230, 235)
+
+    Knob.BorderSizePixel = 0
+
+    Knob.ZIndex = 24
+    Knob.Parent = Button
+
+    local KnobCorner = Instance.new("UICorner")
+    KnobCorner.CornerRadius = UDim.new(1, 0)
+    KnobCorner.Parent = Knob
+
+    local enabled = false
+
+    local function Update()
+
+        if enabled then
+
+            Button.BackgroundColor3 =
+                Config.Themes[Config.Theme]
+
+            Knob.Position =
+                UDim2.new(1, -21, 0, 3)
+
+        else
+
+            Button.BackgroundColor3 =
+                Color3.fromRGB(55, 56, 66)
+
+            Knob.Position =
+                UDim2.fromOffset(3, 3)
+        end
+    end
+
+    Button.MouseButton1Click:Connect(function()
+
+        enabled = not enabled
+
+        Update()
+
+        callback(enabled)
+    end)
+
+    return Holder
+end
+
+--==================================================
+-- SLIDER
+--==================================================
+
+local function CreateSlider(parent, text, min, max, default, callback)
+
+    local Holder = Instance.new("Frame")
+
+    Holder.Name = text .. "Slider"
+    Holder.Size = UDim2.new(1, -8, 0, 78)
+
+    Holder.BackgroundColor3 =
+        Color3.fromRGB(25, 26, 33)
+
+    Holder.BorderSizePixel = 0
+
+    Holder.ZIndex = 20
+    Holder.Parent = parent
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = Holder
+
+    local Label = Instance.new("TextLabel")
+
+    Label.Position = UDim2.fromOffset(16, 7)
+    Label.Size = UDim2.new(1, -100, 0, 22)
+
+    Label.BackgroundTransparency = 1
+    Label.Text = text
+
+    Label.TextColor3 =
+        Color3.fromRGB(235, 235, 240)
+
+    Label.TextSize = 13
+    Label.Font = Enum.Font.GothamMedium
+
+    Label.TextXAlignment =
+        Enum.TextXAlignment.Left
+
+    Label.ZIndex = 22
+    Label.Parent = Holder
+
+    local Value = Instance.new("TextLabel")
+
+    Value.Position =
+        UDim2.new(1, -75, 0, 7)
+
+    Value.Size =
+        UDim2.fromOffset(60, 22)
+
+    Value.BackgroundTransparency = 1
+
+    Value.Text = tostring(default)
+
+    Value.TextColor3 =
+        Config.Themes[Config.Theme]
+
+    Value.TextSize = 13
+    Value.Font = Enum.Font.GothamBold
+
+    Value.TextXAlignment =
+        Enum.TextXAlignment.Right
+
+    Value.ZIndex = 22
+    Value.Parent = Holder
+
+    local Bar = Instance.new("TextButton")
+
+    Bar.Position =
+        UDim2.fromOffset(16, 43)
+
+    Bar.Size =
+        UDim2.new(1, -32, 0, 8)
+
+    Bar.BackgroundColor3 =
+        Color3.fromRGB(55, 56, 66)
+
+    Bar.Text = ""
+
+    Bar.AutoButtonColor = false
+
+    Bar.ZIndex = 22
+    Bar.Parent = Holder
+
+    local BarCorner = Instance.new("UICorner")
+    BarCorner.CornerRadius = UDim.new(1, 0)
+    BarCorner.Parent = Bar
+
+    local Fill = Instance.new("Frame")
+
+    local initialPercent =
+        (default - min) / (max - min)
+
+    Fill.Size =
+        UDim2.new(initialPercent, 0, 1, 0)
+
+    Fill.BackgroundColor3 =
+        Config.Themes[Config.Theme]
+
+    Fill.BorderSizePixel = 0
+
+    Fill.ZIndex = 23
+    Fill.Parent = Bar
+
+    local FillCorner = Instance.new("UICorner")
+    FillCorner.CornerRadius = UDim.new(1, 0)
+    FillCorner.Parent = Fill
+
+    local sliderDragging = false
+
+    local function SetSlider(x)
+
+        local percent =
+            math.clamp(
+                (x - Bar.AbsolutePosition.X) /
+                Bar.AbsoluteSize.X,
+                0,
+                1
+            )
+
+        local number =
+            math.floor(
+                min +
+                ((max - min) * percent)
+            )
+
+        Fill.Size =
+            UDim2.new(percent, 0, 1, 0)
+
+        Value.Text =
+            tostring(number)
+
+        callback(number)
+    end
+
+    Bar.MouseButton1Down:Connect(function()
+
+        sliderDragging = true
+
+        SetSlider(
+            UserInputService:GetMouseLocation().X
+        )
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+
+        if sliderDragging
+            and input.UserInputType ==
+            Enum.UserInputType.MouseMovement then
+
+            SetSlider(input.Position.X)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+
+        if input.UserInputType ==
+            Enum.UserInputType.MouseButton1 then
+
+            sliderDragging = false
+        end
+    end)
+
+    return Holder
+end
+
+--==================================================
+-- PLAYER PAGE
+--==================================================
+
+CreateToggle(
+    PlayerPage,
+    "Air Jump",
+    function(state)
+        Config.AirJump = state
+    end
+)
+
+CreateToggle(
+    PlayerPage,
+    "Player Fly",
+    function(state)
+        Config.Fly = state
+    end
+)
+
+CreateSlider(
+    PlayerPage,
+    "Fly Speed",
+    1,
+    1000,
+    50,
+    function(value)
+        Config.FlySpeed = value
+    end
+)
+
+CreateToggle(
+    PlayerPage,
+    "Freeze NPC",
+    function(state)
+        Config.FreezeNPC = state
+    end
+)
+
+--==================================================
+-- GAME PAGE
+--==================================================
+
+CreateToggle(
+    GamePage,
+    "Full Bright",
+    function(state)
+
+        Config.FullBright = state
+
+        if state then
+
+            Lighting.Brightness = 2
+            Lighting.ClockTime = 14
+            Lighting.FogEnd = 100000
+            Lighting.GlobalShadows = false
+            Lighting.OutdoorAmbient =
+                Color3.fromRGB(255, 255, 255)
+
+        else
+
+            Lighting.Brightness = 1
+            Lighting.FogEnd = 1000
+            Lighting.GlobalShadows = true
+            Lighting.OutdoorAmbient =
+                Color3.fromRGB(128, 128, 128)
+        end
+    end
+)
+
+--==================================================
+-- SETTINGS PAGE
+--==================================================
+
+local ThemeHeader = Instance.new("TextLabel")
+
+ThemeHeader.Size =
+    UDim2.new(1, -8, 0, 30)
+
+ThemeHeader.BackgroundTransparency = 1
+
+ThemeHeader.Text = "PANEL COLOR"
+
+ThemeHeader.TextColor3 =
+    Config.Themes[Config.Theme]
+
+ThemeHeader.TextSize = 11
+
+ThemeHeader.Font =
+    Enum.Font.GothamBold
+
+ThemeHeader.TextXAlignment =
+    Enum.TextXAlignment.Left
+
+ThemeHeader.ZIndex = 22
+ThemeHeader.Parent = SettingsPage
+
+local ThemeContainer = Instance.new("Frame")
+
+ThemeContainer.Size =
+    UDim2.new(1, -8, 0, 175)
+
+ThemeContainer.BackgroundTransparency = 1
+
+ThemeContainer.ZIndex = 20
+ThemeContainer.Parent = SettingsPage
+
+local Grid = Instance.new("UIGridLayout")
+
+Grid.CellSize =
+    UDim2.fromOffset(120, 48)
+
+Grid.CellPadding =
+    UDim2.fromOffset(8, 8)
+
+Grid.Parent = ThemeContainer
+
+for ThemeName, ThemeColor in pairs(Config.Themes) do
+
+    local Button = Instance.new("TextButton")
+
+    Button.Name = ThemeName
+    Button.Text = ThemeName
+
+    Button.BackgroundColor3 =
+        ThemeColor
+
+    Button.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    Button.TextSize = 12
+
+    Button.Font =
+        Enum.Font.GothamBold
+
+    Button.AutoButtonColor = false
+
+    Button.ZIndex = 25
+    Button.Parent = ThemeContainer
+
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 9)
+    Corner.Parent = Button
+
+    Button.MouseButton1Click:Connect(function()
+
+        Config.Theme = ThemeName
+
+        MainStroke.Color =
+            Config.Themes[ThemeName]
+
+        ThemeHeader.TextColor3 =
+            Config.Themes[ThemeName]
+
+        for TabName, Tab in pairs(Tabs) do
+
+            if Pages[TabName].Visible then
+
+                Tab.BackgroundColor3 =
+                    Config.Themes[ThemeName]
+
+                Tab.TextColor3 =
+                    Color3.fromRGB(255, 255, 255)
+
+            end
+        end
+
+        -- Update all accent-colored UI elements
+        for _, object in ipairs(Gui:GetDescendants()) do
+
+            if object:IsA("Frame")
+                and object.Name == "Accent" then
+
+                object.BackgroundColor3 =
+                    Config.Themes[ThemeName]
+            end
+
+        end
+    end)
+end
+
+--==================================================
+-- AIR JUMP
+--==================================================
+
+UserInputService.JumpRequest:Connect(function()
+
+    if not Config.AirJump then
+        return
+    end
+
+    if Humanoid and Humanoid.Health > 0 then
+
+        Humanoid:ChangeState(
+            Enum.HumanoidStateType.Jumping
+        )
+    end
+end)
+
+--==================================================
+-- FLY
+--==================================================
+
+local FlyConnection
+
+local function StopFly()
+
+    if FlyConnection then
+
+        FlyConnection:Disconnect()
+        FlyConnection = nil
+    end
+
+    if Root then
+
+        local velocity =
+            Root:FindFirstChild(
+                "PlesneviyFlyVelocity"
+            )
+
+        if velocity then
+            velocity:Destroy()
+        end
+    end
+end
+
+local function StartFly()
+
+    StopFly()
+
+    if not Root then
+        return
+    end
+
+    local Velocity =
+        Instance.new("BodyVelocity")
+
+    Velocity.Name =
+        "PlesneviyFlyVelocity"
+
+    Velocity.MaxForce =
+        Vector3.new(
+            math.huge,
+            math.huge,
+            math.huge
+        )
+
+    Velocity.Velocity =
+        Vector3.zero
+
+    Velocity.Parent = Root
+
+    FlyConnection =
+        RunService.RenderStepped:Connect(function()
+
+            if not Config.Fly
+                or not Root
+                or not Character then
+
+                return
+            end
+
+            local Direction =
+                Vector3.zero
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.W
+            ) then
+
+                Direction +=
+                    workspace.CurrentCamera.CFrame.LookVector
+            end
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.S
+            ) then
+
+                Direction -=
+                    workspace.CurrentCamera.CFrame.LookVector
+            end
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.A
+            ) then
+
+                Direction -=
+                    workspace.CurrentCamera.CFrame.RightVector
+            end
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.D
+            ) then
+
+                Direction +=
+                    workspace.CurrentCamera.CFrame.RightVector
+            end
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.Space
+            ) then
+
+                Direction +=
+                    Vector3.new(0, 1, 0)
+            end
+
+            if UserInputService:IsKeyDown(
+                Enum.KeyCode.LeftControl
+            ) then
+
+                Direction -=
+                    Vector3.new(0, 1, 0)
+            end
+
+            if Direction.Magnitude > 0 then
+
+                Direction =
+                    Direction.Unit
+            end
+
+            Velocity.Velocity =
+                Direction *
+                Config.FlySpeed
+        end)
+end
+
+local previousFlyState = false
+
+RunService.Heartbeat:Connect(function()
+
+    if Config.Fly ~= previousFlyState then
+
+        previousFlyState =
+            Config.Fly
+
+        if Config.Fly then
+            StartFly()
+        else
+            StopFly()
+        end
+    end
+end)
+
+--==================================================
+-- NPC FREEZE
+--==================================================
+
+local FrozenNPCs = {}
+
+local function IsNPC(model)
+
+    if not model:IsA("Model") then
+        return false
+    end
+
+    if Players:GetPlayerFromCharacter(model) then
+        return false
+    end
+
+    return model:FindFirstChildOfClass(
+        "Humanoid"
+    ) ~= nil
+end
+
+local function FreezeNPC(model)
+
+    local Hum =
+        model:FindFirstChildOfClass(
+            "Humanoid"
+        )
+
+    if not Hum then
+        return
+    end
+
+    if not FrozenNPCs[model] then
+
+        FrozenNPCs[model] = {
+            WalkSpeed = Hum.WalkSpeed,
+            JumpPower = Hum.JumpPower,
+            AutoRotate = Hum.AutoRotate
+        }
+    end
+
+    Hum.WalkSpeed = 0
+    Hum.JumpPower = 0
+    Hum.AutoRotate = false
+end
+
+local function UnfreezeNPC(model)
+
+    local Data =
+        FrozenNPCs[model]
+
+    local Hum =
+        model:FindFirstChildOfClass(
+            "Humanoid"
+        )
+
+    if Hum and Data then
+
+        Hum.WalkSpeed =
+            Data.WalkSpeed
+
+        Hum.JumpPower =
+            Data.JumpPower
+
+        Hum.AutoRotate =
+            Data.AutoRotate
+    end
+
+    FrozenNPCs[model] = nil
+end
+
+RunService.Heartbeat:Connect(function()
+
+    for _, Object in ipairs(
+        workspace:GetChildren()
+    ) do
+
+        if IsNPC(Object) then
+
+            if Config.FreezeNPC then
+
+                FreezeNPC(Object)
+
+            elseif FrozenNPCs[Object] then
+
+                UnfreezeNPC(Object)
+            end
+        end
+    end
+end)
+
+--==================================================
+-- MENU TOGGLE
+--==================================================
+
+local MenuVisible = true
+
+UserInputService.InputBegan:Connect(
+    function(input, processed)
+
+        if processed then
+            return
+        end
+
+        if input.KeyCode ==
+            Enum.KeyCode.RightShift then
+
+            MenuVisible =
+                not MenuVisible
+
+            Main.Visible =
+                MenuVisible
+        end
+    end
+)
+
+--==================================================
+-- DEFAULT PAGE
+--==================================================
+
+SelectTab("Player")
+
+print(
+    "Plesneviy Xyu CONFIG loaded successfully."
+)
+print(
+    "Right Shift toggles the menu."
+)
+--==================================================
+-- MENU KEYBINDS
+--==================================================
+
+local MenuVisible = true
+local MenuDisabled = false
+
+UserInputService.InputBegan:Connect(function(input, processed)
+
+    if processed then
+        return
+    end
+
+    -- RIGHT ALT:
+    -- Toggle the menu on/off
+    if input.KeyCode == Enum.KeyCode.RightAlt then
+
+        -- If Right Control permanently disabled
+        -- the menu, Right Alt does nothing.
+        if MenuDisabled then
+            return
+        end
+
+        MenuVisible = not MenuVisible
+        Main.Visible = MenuVisible
+    end
+
+    -- RIGHT CONTROL:
+    -- Permanently hide the menu
+    if input.KeyCode == Enum.KeyCode.RightControl then
+
+        MenuDisabled = true
+        MenuVisible = false
+
+        Main.Visible = false
+    end
+end)
+--==================================================
+-- GAME TAB ADDITIONS
+--==================================================
+
+-- Add these services near the top of the script:
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--==================================================
+-- CONFIG ADDITIONS
+--==================================================
+
+Config.PlayerESP = false
+Config.Aimbot = false
+Config.FOV = 75
+
+--==================================================
+-- FOV CIRCLE
+--==================================================
+
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.Position = UDim2.fromScale(0.5, 0.5)
+
+FOVCircle.Size = UDim2.fromOffset(
+    Config.FOV * 2,
+    Config.FOV * 2
+)
+
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.BorderSizePixel = 0
+FOVCircle.Visible = false
+
+FOVCircle.ZIndex = 100
+
+FOVCircle.Parent = Gui
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVCircle
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Thickness = 2
+FOVStroke.Transparency = 0.15
+FOVStroke.Color = Config.Themes[Config.Theme]
+FOVStroke.Parent = FOVCircle
+
+--==================================================
+-- ESP
+--==================================================
+
+local ESPObjects = {}
+
+local function RemoveESP(player)
+
+    local highlight = ESPObjects[player]
+
+    if highlight then
+        highlight:Destroy()
+        ESPObjects[player] = nil
+    end
+end
+
+local function CreateESP(player)
+
+    if player == LocalPlayer then
+        return
+    end
+
+    local character = player.Character
+
+    if not character then
+        return
+    end
+
+    RemoveESP(player)
+
+    local highlight = Instance.new("Highlight")
+
+    highlight.Name = "PlesneviyPlayerESP"
+
+    highlight.Adornee = character
+
+    highlight.DepthMode =
+        Enum.HighlightDepthMode.AlwaysOnTop
+
+    highlight.FillColor =
+        Config.Themes[Config.Theme]
+
+    highlight.FillTransparency = 0.65
+
+    highlight.OutlineColor =
+        Color3.fromRGB(255,255,255)
+
+    highlight.OutlineTransparency = 0
+
+    highlight.Parent = Gui
+
+    ESPObjects[player] = highlight
+end
+
+local function UpdateESP()
+
+    for _, player in ipairs(Players:GetPlayers()) do
+
+        if player ~= LocalPlayer then
+
+            if Config.PlayerESP then
+                CreateESP(player)
+            else
+                RemoveESP(player)
+            end
+        end
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+
+    player.CharacterAdded:Connect(function()
+
+        task.wait(0.2)
+
+        if Config.PlayerESP then
+            CreateESP(player)
+        end
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+end)
+
+--==================================================
+-- AIMBOT TARGET SEARCH
+--==================================================
+
+local function GetClosestTarget()
+
+    local closestPlayer = nil
+    local closestDistance = Config.FOV
+
+    local screenCenter =
+        Vector2.new(
+            Camera.ViewportSize.X / 2,
+            Camera.ViewportSize.Y / 2
+        )
+
+    for _, player in ipairs(
+        Players:GetPlayers()
+    ) do
+
+        if player ~= LocalPlayer then
+
+            local character =
+                player.Character
+
+            if character then
+
+                local humanoid =
+                    character:FindFirstChildOfClass(
+                        "Humanoid"
+                    )
+
+                local head =
+                    character:FindFirstChild(
+                        "Head"
+                    )
+
+                if humanoid
+                    and head
+                    and humanoid.Health > 0 then
+
+                    local position, visible =
+                        Camera:WorldToViewportPoint(
+                            head.Position
+                        )
+
+                    if visible
+                        and position.Z > 0 then
+
+                        local screenPosition =
+                            Vector2.new(
+                                position.X,
+                                position.Y
+                            )
+
+                        local distance =
+                            (
+                                screenPosition -
+                                screenCenter
+                            ).Magnitude
+
+                        if distance <
+                            closestDistance then
+
+                            closestDistance =
+                                distance
+
+                            closestPlayer =
+                                player
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+--==================================================
+-- AIMBOT
+--==================================================
+
+local AimbotConnection
+
+local function StartAimbot()
+
+    if AimbotConnection then
+        AimbotConnection:Disconnect()
+    end
+
+    AimbotConnection =
+        RunService.RenderStepped:Connect(
+        function()
+
+            if not Config.Aimbot then
+                return
+            end
+
+            local target =
+                GetClosestTarget()
+
+            if not target then
+                return
+            end
+
+            local character =
+                target.Character
+
+            if not character then
+                return
+            end
+
+            local head =
+                character:FindFirstChild("Head")
+
+            if not head then
+                return
+            end
+
+            -- Hold right mouse button to aim.
+            if UserInputService:IsMouseButtonPressed(
+                Enum.UserInputType.MouseButton2
+            ) then
+
+                local cameraPosition =
+                    Camera.CFrame.Position
+
+                local direction =
+                    (
+                        head.Position -
+                        cameraPosition
+                    ).Unit
+
+                Camera.CFrame =
+                    Camera.CFrame:Lerp(
+                        CFrame.lookAt(
+                            cameraPosition,
+                            cameraPosition +
+                            direction
+                        ),
+                        0.18
+                    )
+            end
+        end
+    )
+end
+
+StartAimbot()
+
+--==================================================
+-- GAME TAB UI
+--==================================================
+
+CreateToggle(
+    GamePage,
+    "Player ESP",
+    function(state)
+
+        Config.PlayerESP = state
+
+        UpdateESP()
+    end
+)
+
+CreateToggle(
+    GamePage,
+    "Aimbot",
+    function(state)
+
+        Config.Aimbot = state
+
+        FOVCircle.Visible = state
+    end
+)
+
+CreateSlider(
+    GamePage,
+    "Aimbot FOV",
+    1,
+    150,
+    Config.FOV,
+    function(value)
+
+        Config.FOV = value
+
+        FOVCircle.Size =
+            UDim2.fromOffset(
+                value * 2,
+                value * 2
+            )
+    end
+)
+
+--==================================================
+-- KEEP FOV CIRCLE CENTERED
+--==================================================
+
+RunService.RenderStepped:Connect(function()
+
+    if FOVCircle then
+
+        FOVCircle.Position =
+            UDim2.fromOffset(
+                Camera.ViewportSize.X / 2,
+                Camera.ViewportSize.Y / 2
+            )
+    end
+
+    if Config.PlayerESP then
+        UpdateESP()
+    end
+end)
+
+--==================================================
+-- UPDATE ESP COLORS WHEN THEME CHANGES
+--==================================================
+
+local function UpdateESPColors()
+
+    for _, highlight in pairs(ESPObjects) do
+
+        if highlight then
+
+            highlight.FillColor =
+                Config.Themes[Config.Theme]
+        end
+    end
+
+    if FOVStroke then
+
+        FOVStroke.Color =
+            Config.Themes[Config.Theme]
+    end
+end
+--==================================================
+-- AIMBOT SMOOTHNESS CONFIG
+--==================================================
+
+Config.AimbotSmoothness = 18
+
+--==================================================
+-- AIMBOT SMOOTHNESS SLIDER
+-- Add this directly underneath the Aimbot FOV slider
+--==================================================
+
+CreateSlider(
+    GamePage,
+    "Aimbot Smoothness",
+    1,
+    100,
+    Config.AimbotSmoothness,
+    function(value)
+
+        Config.AimbotSmoothness = value
+    end
+)
+
+--==================================================
+-- REPLACE THE AIMBOT CAMERA SECTION
+--==================================================
+
+-- Find the existing:
+--
+-- Camera.CFrame =
+--     Camera.CFrame:Lerp(...)
+--
+-- and replace that section with this:
+
+local smoothness =
+    math.clamp(
+        Config.AimbotSmoothness / 100,
+        0.01,
+        1
+    )
+
+-- Convert slider into interpolation amount.
+-- Lower slider = faster/snappier movement.
+-- Higher slider = smoother/slower movement.
+
+local interpolation =
+    1 - smoothness
+
+interpolation =
+    math.clamp(
+        interpolation,
+        0.01,
+        0.99
+    )
+
+Camera.CFrame =
+    Camera.CFrame:Lerp(
+        CFrame.lookAt(
+            cameraPosition,
+            head.Position
+        ),
+        interpolation
+    )
